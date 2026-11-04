@@ -1,0 +1,2 @@
+body { width: 290px; padding: 14px 16px; }
+.row { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }

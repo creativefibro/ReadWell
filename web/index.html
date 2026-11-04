@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ReadWell</title>
+<meta name="description" content="Your calm reading queue.">
+<meta name="theme-color" content="#EEF0EA" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#161B19" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ReadWell">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/style.css">
+<script src="/vendor/Readability.js" defer></script>
+<script src="/app.js" type="module"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<main id="main" tabindex="-1"><p class="loading" role="status">Opening your Queue…</p></main>
+<div class="toast" role="status" aria-live="polite" hidden></div>
+<dialog id="finish" aria-labelledby="finish-title">
+  <form method="dialog" id="finish-form">
+    <h2 id="finish-title">Finish Article</h2>
+    <p class="finish-article"></p>
+    <fieldset class="stars">
+      <legend>How much did you enjoy or gain from it? <span class="optional">Optional</span></legend>
+      <div class="star-row">
+        <input type="radio" name="rating" id="star1" value="1"><label for="star1" title="1 star"><span class="visually-hidden">1 star</span></label>
+        <input type="radio" name="rating" id="star2" value="2"><label for="star2" title="2 stars"><span class="visually-hidden">2 stars</span></label>
+        <input type="radio" name="rating" id="star3" value="3"><label for="star3" title="3 stars"><span class="visually-hidden">3 stars</span></label>
+        <input type="radio" name="rating" id="star4" value="4"><label for="star4" title="4 stars"><span class="visually-hidden">4 stars</span></label>
+        <input type="radio" name="rating" id="star5" value="5"><label for="star5" title="5 stars"><span class="visually-hidden">5 stars</span></label>
+      </div>
+      <button type="button" class="text-button clear-rating">No rating</button>
+    </fieldset>
+    <p class="finish-note">Delete removes the article. Its rating stays in your History.</p>
+    <p class="form-error" role="alert"></p>
+    <div class="dialog-actions">
+      <button type="submit" value="cancel" class="quiet">Cancel</button>
+      <button type="submit" value="delete" class="primary">Delete</button>
+    </div>
+  </form>
+</dialog>
+</body>
+</html>

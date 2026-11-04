@@ -1,0 +1,11 @@
+{
+  "name": "ReadWell",
+  "short_name": "ReadWell",
+  "description": "Your calm reading queue.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#EEF0EA",
+  "theme_color": "#EEF0EA",
+  "icons": []
+}

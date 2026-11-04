@@ -1,0 +1,109 @@
+// ReadWell's HTTP routes, written against the web Request/Response API so the
+// same code runs locally and behind Cloudflare Access on the Mac Studio.
+import {readFile} from 'node:fs/promises';
+import {timingSafeEqual} from 'node:crypto';
+import {extname, join, normalize} from 'node:path';
+import {fileURLToPath} from 'node:url';
+
+const WEB = fileURLToPath(new URL('../web/', import.meta.url));
+const TYPES = {
+  '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
+  '.webmanifest': 'application/manifest+json', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon', '.txt': 'text/plain; charset=utf-8', '.md': 'text/plain; charset=utf-8',
+};
+export const SECURITY = {
+  'X-Content-Type-Options': 'nosniff',
+  'Referrer-Policy': 'no-referrer',
+  'X-Frame-Options': 'DENY',
+  'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+  'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' https: data:; " +
+    "connect-src 'self'; font-src 'self'; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; " +
+    "form-action 'self'; frame-ancestors 'none'",
+};
+
+const json = (body, status = 200) => new Response(JSON.stringify(body), {
+  status, headers: {...SECURITY, 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store'},
+});
+
+function sameKey(given, expected) {
+  if (typeof given !== 'string' || typeof expected !== 'string' || !expected) return false;
+  const a = Buffer.from(given), b = Buffer.from(expected);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
+async function body(request, limit) {
+  const text = await request.text();
+  if (text.length > limit) throw Object.assign(new Error('Request too large'), {status: 413});
+  if (!text) return {};
+  try { return JSON.parse(text); } catch { throw Object.assign(new Error('Request body must be JSON'), {status: 400}); }
+}
+
+async function staticFile(pathname) {
+  const path = pathname === '/' ? '/index.html' : pathname;
+  if (path.includes('\0') || path.includes('..')) return null;
+  const file = normalize(join(WEB, path));
+  if (!file.startsWith(WEB)) return null;
+  try {
+    const data = await readFile(file);
+    const type = TYPES[extname(file)] || 'application/octet-stream';
+    return new Response(data, {headers: {...SECURITY, 'Content-Type': type, 'Cache-Control': 'no-cache'}});
+  } catch { return null; }
+}
+
+export function createApp({store, fetchPage, captureKey, origin}) {
+  return async function handle(request) {
+    const url = new URL(request.url);
+    const {pathname} = url;
+    const method = request.method;
+    try {
+      if (pathname === '/api/capture') {
+        if (method !== 'POST') return json({error: 'Method not allowed'}, 405);
+        if (!sameKey(request.headers.get('x-readwell-key'), captureKey)) return json({error: 'This device isn’t set up to save to ReadWell.'}, 401);
+        const input = await body(request, 7_000_000);
+        const outcome = await store.saveCapture(input, {fetchPage});
+        const a = outcome.article;
+        return json({
+          result: outcome.result,
+          message: outcome.result === 'duplicate' ? 'Already in your Queue' : 'Saved to ReadWell',
+          id: a?.id, title: a?.title, kind: a?.kind, lastFinished: outcome.lastFinished || null,
+        }, outcome.result === 'saved' ? 201 : 200);
+      }
+
+      if (pathname.startsWith('/api/')) {
+        if (method === 'POST') {
+          const from = request.headers.get('origin');
+          if (from !== origin) return json({error: 'Cross-origin changes are blocked'}, 403);
+        } else if (method !== 'GET') return json({error: 'Method not allowed'}, 405);
+
+        if (method === 'GET' && pathname === '/api/queue') {
+          return json(store.queue({order: url.searchParams.get('order') || undefined, search: url.searchParams.get('q') || ''}));
+        }
+        if (method === 'GET' && pathname === '/api/lucky-dip') return json({id: store.luckyDip()});
+        if (method === 'POST' && pathname === '/api/settings/order') return json(store.setOrder((await body(request, 2000)).order));
+        const m = pathname.match(/^\/api\/articles\/([0-9a-f-]{36})(?:\/(opened|position|cleaned|finish))?$/);
+        if (m) {
+          const [, id, action] = m;
+          if (method === 'GET' && !action) return json(store.getArticle(id));
+          if (method === 'POST' && action === 'opened') return json(store.recordOpen(id));
+          if (method === 'POST' && action === 'position') return json(store.savePosition(id, (await body(request, 2000)).position));
+          if (method === 'POST' && action === 'cleaned') return json(store.saveCleaned(id, await body(request, 4_000_000)));
+          if (method === 'POST' && action === 'finish') {
+            const b = await body(request, 2000);
+            return json(store.finish(id, {rating: b.rating ?? null, outcome: b.outcome || 'deleted'}));
+          }
+        }
+        return json({error: 'Not found'}, 404);
+      }
+
+      if (method !== 'GET' && method !== 'HEAD') return json({error: 'Method not allowed'}, 405);
+      const file = await staticFile(pathname);
+      if (file) return file;
+      // Client-side routes all load the app shell.
+      if (!extname(pathname)) return await staticFile('/');
+      return new Response('Not found', {status: 404, headers: {...SECURITY, 'Content-Type': 'text/plain'}});
+    } catch (error) {
+      const status = Number.isInteger(error.status) ? error.status : 500;
+      return json({error: status === 500 ? 'ReadWell couldn’t complete that. Please try again.' : error.message}, status);
+    }
+  };
+}

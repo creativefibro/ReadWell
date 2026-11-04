@@ -1,0 +1,8 @@
+.local/
+node_modules/
+*.sqlite
+*.sqlite-*
+*.key
+*.token
+.DS_Store
+__pycache__/

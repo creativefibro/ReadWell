@@ -1,0 +1,11 @@
+{
+  "name": "readwell",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22.13" },
+  "scripts": {
+    "test": "node --test --no-warnings tests/*.test.mjs",
+    "start": "node --no-warnings scripts/serve.mjs",
+    "start:production": "node --no-warnings server/main.mjs"
+  }
+}

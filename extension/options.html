@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en-GB"><head><meta charset="utf-8"><title>ReadWell extension settings</title><link rel="stylesheet" href="shared.css"><link rel="stylesheet" href="options.css"></head>
+<body>
+<main>
+  <h1>Save to ReadWell settings</h1>
+  <p class="soft">These details let this browser save to your Queue. They stay in this browser only.</p>
+  <form id="form">
+    <label for="server">ReadWell address</label>
+    <input id="server" name="server" type="url" required placeholder="https://readwell.susanpearson.uk">
+    <label for="key">Capture key</label>
+    <input id="key" name="key" type="password" required autocomplete="off">
+    <p class="soft">Shown when ReadWell starts on your Mac, and in ReadWell’s settings later.</p>
+    <fieldset>
+      <legend>Cloudflare service token (only for readwell.susanpearson.uk)</legend>
+      <label for="clientId">Client ID</label>
+      <input id="clientId" name="clientId" autocomplete="off">
+      <label for="clientSecret">Client secret</label>
+      <input id="clientSecret" name="clientSecret" type="password" autocomplete="off">
+    </fieldset>
+    <p><button type="submit">Save Settings</button> <span id="saved" role="status" class="soft"></span></p>
+  </form>
+</main>
+<script src="options.js" type="module"></script>
+</body></html>
