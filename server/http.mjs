@@ -2,9 +2,11 @@
 import {createServer} from 'node:http';
 
 export function serve(handler, {host = '127.0.0.1', port, origin, limit = 7_500_000, onError = () => {}}) {
+  const expectedHost = new URL(origin).host;
   const server = createServer(async (req, res) => {
     try {
       if (!req.url?.startsWith('/') || req.url.startsWith('//')) { res.writeHead(400); res.end(); return; }
+      if (req.headers.host !== expectedHost) { res.writeHead(421, {'Content-Type': 'text/plain'}); res.end('Unrecognised hostname'); return; }
       const chunks = [];
       let size = 0;
       for await (const chunk of req) {

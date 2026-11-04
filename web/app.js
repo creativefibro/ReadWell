@@ -18,14 +18,30 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({'&': '&amp;', '<
 
 async function api(path, {method = 'GET', body} = {}) {
   const res = await fetch(path, {
-    method, credentials: 'same-origin',
+    method, credentials: 'same-origin', redirect: 'manual',
     headers: {'X-Requested-With': 'XMLHttpRequest', ...(body !== undefined ? {'Content-Type': 'application/json'} : {})},
     ...(body !== undefined ? {body: JSON.stringify(body)} : {}),
   });
   let data = null;
   try { data = await res.json(); } catch { /* not JSON */ }
+  // An expired Cloudflare Access session answers 401 or redirects to its sign-in page.
+  if (res.status === 401 || res.type === 'opaqueredirect') {
+    askToSignIn();
+    throw Object.assign(new Error('Please sign in to ReadWell again.'), {status: 401});
+  }
   if (!res.ok) throw Object.assign(new Error(data?.error || 'ReadWell couldn’t complete that. Please try again.'), {status: res.status});
   return data;
+}
+
+// Signing in again is a full page visit: Access shows its sign-in, then returns here.
+function askToSignIn() {
+  if (document.querySelector('.signin')) return;
+  const box = document.createElement('div');
+  box.className = 'signin';
+  box.setAttribute('role', 'alert');
+  box.innerHTML = '<p>Your ReadWell sign-in has ended. Nothing you’ve saved is lost.</p><button type="button" class="primary">Sign In</button>';
+  box.querySelector('button').addEventListener('click', () => location.reload());
+  document.body.append(box);
 }
 
 function toast(message) {

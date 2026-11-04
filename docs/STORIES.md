@@ -153,12 +153,12 @@ UX:
 Status: done (Susan to load it in Vivaldi and save a signed-in article)
 
 ## M2 Live on your devices
-- S-020 Install ReadWell as a login service on the Mac Studio (Flourish installer pattern, own folder and port).
+- S-020 Install ReadWell as a login service on the Mac Studio (Flourish installer pattern, own folder and port 4322). Built and dry-run tested; Susan runs it on the Mac.
 - S-021 Publish readwell.susanpearson.uk through its own Cloudflare Tunnel (Susan approves DNS route).
 - S-022 Protect it with its own Access application: Susan's email, passkey, one-month session.
 - S-023 Serve icon and manifest paths publicly so Home Screen install works.
-- S-024 Show "Sign in again" when the session expires, without losing anything.
-- S-025 Capture path accepts only a service token plus a ReadWell capture key.
+- S-024 Show "Sign in again" when the session expires, without losing anything. Built.
+- S-025 Capture path accepts only a service token plus a ReadWell capture key. Built and tested with signed test tokens.
 - S-026 "Save to ReadWell" Shortcut: accepts web pages, links and text containing a link; confirms in a notification.
 - S-027 Shortcut fallback to an iCloud Drive inbox when the Mac is unreachable; imported once on next start.
 - S-028 Shortcut tested from Medium, Quiche, Mail and two more apps (checklist with Susan).

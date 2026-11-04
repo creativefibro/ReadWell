@@ -177,6 +177,12 @@ dialog h2 { font: 400 1.5rem/1.2 var(--book); margin: 0 0 .25rem; }
   background: var(--ink); color: var(--paper); padding: .7rem 1.1rem; border-radius: 999px; max-width: calc(100vw - 2rem);
   font-size: .9375rem; z-index: 20;
 }
+.signin {
+  position: fixed; left: 50%; top: calc(1rem + env(safe-area-inset-top)); transform: translateX(-50%); z-index: 30;
+  width: min(26rem, calc(100vw - 2rem)); background: var(--paper-raised); border: 1px solid var(--fill); border-radius: 12px;
+  padding: 1rem 1.1rem; display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; box-shadow: 0 8px 30px rgba(36, 27, 51, .18);
+}
+.signin p { margin: 0; flex: 1 1 14rem; }
 .problem { padding: 3rem 0; }
 .problem p { color: var(--ink-soft); }
 
