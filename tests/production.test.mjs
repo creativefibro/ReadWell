@@ -13,7 +13,7 @@ import {setup, articlePage, KEY} from './helpers.mjs';
 
 const {privateKey, publicKey} = generateKeyPairSync('rsa', {modulusLength: 2048});
 const jwk = {...publicKey.export({format: 'jwk'}), kid: 'test', alg: 'RS256', use: 'sig'};
-const config = {origin: ORIGIN, issuer: 'https://test.cloudflareaccess.com', audience: 'readwell-aud', email: 'susan@example.test', serviceClientId: 'abc123.access'};
+const config = {origin: ORIGIN, issuer: 'https://test.cloudflareaccess.com', audience: 'readwell-aud', captureAudience: 'readwell-save-aud', email: 'susan@example.test', serviceClientId: 'abc123.access'};
 const verifier = () => new AccessVerifier(config, async () => new Response(JSON.stringify({keys: [jwk]})));
 function token(changes = {}, header = {}) {
   const now = Math.floor(Date.now() / 1000);
@@ -21,7 +21,7 @@ function token(changes = {}, header = {}) {
     .map((x) => Buffer.from(JSON.stringify(x)).toString('base64url'));
   return [...parts, sign('RSA-SHA256', Buffer.from(parts.join('.')), privateKey).toString('base64url')].join('.');
 }
-const serviceToken = () => token({email: undefined, sub: '', common_name: config.serviceClientId});
+const serviceToken = (changes = {}) => token({aud: [config.captureAudience], email: undefined, sub: '', common_name: config.serviceClientId, ...changes});
 
 async function gated() {
   const t = setup({pages: {'https://example.com/a': articlePage()}});
@@ -40,6 +40,8 @@ test('Access accepts Susan and the ReadWell service token, and nothing else', as
   for (const change of [{email: 'other@example.test'}, {iss: 'https://evil.test'}, {aud: ['other']}, {exp: 1}, {nbf: 9999999999}, {type: 'org'}, {sub: ''},
     {email: undefined, sub: '', common_name: 'someone-else.access'}, {email: undefined, sub: ''}])
     await assert.rejects(() => v.verify(token(change)), JSON.stringify(change));
+  await assert.rejects(() => v.verify(token({aud: [config.captureAudience]})), 'Susan is not accepted on the save audience');
+  await assert.rejects(() => v.verify(serviceToken({aud: [config.audience]})), 'the service token is not accepted on the main audience');
   await assert.rejects(() => v.verify(token({}, {alg: 'none'})));
   await assert.rejects(() => v.verify(token().slice(0, -4) + 'AAAA'));
   await assert.rejects(() => v.verify('not.a.token'));
@@ -121,4 +123,25 @@ test('private configuration must be private and complete', () => {
   assert.equal(readlinkSync(join(home, 'current')), firstRelease, 'same source, same release');
   chmodSync(join(home, 'config.json'), 0o644);
   assert.throws(() => loadConfig(home), /private/);
+});
+
+test('the connect script stores Access details and the tunnel token privately', async () => {
+  const home = mkdtempSync(join(tmpdir(), 'readwell-connect-'));
+  chmodSync(home, 0o700);
+  const script = (name) => fileURLToPath(new URL(`../scripts/${name}`, import.meta.url));
+  execFileSync(process.execPath, ['--no-warnings', script('mac-install.mjs'), '--dry-run'], {env: {...process.env, READWELL_HOME: home}});
+  const tunnel = Buffer.from(JSON.stringify({a: 'acct', t: '11111111-2222-3333-4444-555555555555', s: 'c2VjcmV0'})).toString('base64');
+  const env = {...process.env, READWELL_HOME: home, READWELL_AUD: 'a'.repeat(64), READWELL_SAVE_AUD: 'b'.repeat(64),
+    READWELL_CLIENT_ID: 'c'.repeat(32) + '.access', READWELL_TUNNEL_TOKEN: tunnel};
+  const out = execFileSync(process.execPath, ['--no-warnings', script('mac-connect.mjs'), '--dry-run'], {env}).toString();
+  assert.match(out, /11111111-2222/);
+  const c = loadConfig(home);
+  assert.equal(c.email, 'accounts@susanpearson.uk');
+  assert.equal(c.issuer, 'https://billowing-night-42d9.cloudflareaccess.com');
+  assert.equal(c.captureAudience, 'b'.repeat(64));
+  assert.equal(statSync(join(home, 'tunnel.token')).mode & 0o777, 0o600);
+  assert.ok(!readFileSync(join(home, 'config.json'), 'utf8').includes(tunnel), 'token is not in the configuration');
+  new AccessVerifier(c); // complete enough to unlock the gate
+  for (const bad of [{READWELL_AUD: 'short'}, {READWELL_SAVE_AUD: 'a'.repeat(64)}, {READWELL_CLIENT_ID: 'abc'}, {READWELL_TUNNEL_TOKEN: 'not-a-token'}])
+    assert.throws(() => execFileSync(process.execPath, ['--no-warnings', script('mac-connect.mjs'), '--dry-run'], {env: {...env, ...bad}, stdio: 'pipe'}), JSON.stringify(Object.keys(bad)));
 });

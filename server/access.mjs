@@ -23,11 +23,13 @@ export class AccessVerifier {
     const key = this.keys.find((k) => k.kid === header.kid && k.kty === 'RSA' && (!k.alg || k.alg === 'RS256') && (!k.use || k.use === 'sig'));
     if (!key || !verify('RSA-SHA256', Buffer.from(parts[0] + '.' + parts[1]), createPublicKey({key, format: 'jwk'}), Buffer.from(parts[2], 'base64url'))) throw Error('Invalid signature');
     const now = Math.floor(Date.now() / 1000), aud = Array.isArray(claims.aud) ? claims.aud : [claims.aud];
-    if (claims.iss !== this.config.issuer || !aud.includes(this.config.audience) || claims.type !== 'app' ||
+    // The save route is its own Access application, so service tokens carry its audience.
+    const captureAudience = this.config.captureAudience || this.config.audience;
+    if (claims.iss !== this.config.issuer || !(aud.includes(this.config.audience) || aud.includes(captureAudience)) || claims.type !== 'app' ||
       !Number.isFinite(claims.exp) || claims.exp <= now || !Number.isFinite(claims.iat) || claims.iat > now + 30 ||
       claims.nbf !== undefined && (!Number.isFinite(claims.nbf) || claims.nbf > now + 30)) throw Error('Identity is not permitted');
-    if (typeof claims.email === 'string' && claims.email.toLowerCase() === this.config.email.toLowerCase() && typeof claims.sub === 'string' && claims.sub) return {kind: 'susan', claims};
-    if (this.config.serviceClientId && !claims.email && claims.common_name === this.config.serviceClientId) return {kind: 'service', claims};
+    if (aud.includes(this.config.audience) && typeof claims.email === 'string' && claims.email.toLowerCase() === this.config.email.toLowerCase() && typeof claims.sub === 'string' && claims.sub) return {kind: 'susan', claims};
+    if (aud.includes(captureAudience) && this.config.serviceClientId && !claims.email && claims.common_name === this.config.serviceClientId) return {kind: 'service', claims};
     throw Error('Identity is not permitted');
   }
 }

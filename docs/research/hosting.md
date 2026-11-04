@@ -73,4 +73,5 @@ Research for ReadWell. Done 2026-11-04.
 
 ## Open questions
 - Does an iOS Home Screen web app keep the Access cookie for a month? [U] test in M1.
+- RESOLVED: ReadWell sign-in email is accounts@susanpearson.uk (Susan, 4 Nov). Save route is a separate Access application with its own audience.
 - RESOLVED: notes go to `~/Areas/Commonplace/ReadWell/` (Susan, 4 Nov). Mac does not sleep; only occasional updates/reboots. Repository: Creative Fibro GitHub organisation (`creativefibro/readwell`).
