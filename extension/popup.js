@@ -23,7 +23,7 @@ function show(message, kind = 'soft') {
 
 async function badge(tabId, text) {
   try {
-    await chrome.action.setBadgeBackgroundColor({tabId, color: '#2F6B5E'});
+    await chrome.action.setBadgeBackgroundColor({tabId, color: '#8951EE'});
     await chrome.action.setBadgeText({tabId, text});
     setTimeout(() => chrome.action.setBadgeText({tabId, text: ''}), 4000);
   } catch { /* badge is optional */ }

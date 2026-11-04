@@ -45,8 +45,11 @@ Access application, LaunchAgents and backups from Flourish.
 Flourish (hosting, Access, installer, backups). Web Highlights for what to avoid: busy dashboard, repeated sign-in.
 
 ## Look
-Calm, welcoming, modern but not clinical; comfortable reading typography; light and
-dark. Icon artwork by Clara at the polish stage; ReadWell supplies the specification.
+From Susan's ReadWell icon (`design/readwell-logo-source.png`): soft lavender `#DDC9FD`
+and violet `#8951EE`. Writing is neutral (`#333333` on a faint lavender-white page;
+`#E6E6E6` on deep aubergine in dark mode). Violet is kept for actions, links and
+Continue Reading; small violet text uses `#6B3BCB` for contrast. Book typeface for
+reading, system sans for controls. Calm, welcoming, modern but not clinical.
 
 ## Not in version one
 - Medium content extraction or Medium highlights (Medium app and Web Highlights handle these).
