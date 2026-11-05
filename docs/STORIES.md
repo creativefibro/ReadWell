@@ -161,7 +161,7 @@ Status: done (live in Vivaldi 5 Nov)
 - S-025 Capture path accepts only a service token plus a ReadWell capture key. Done 5 Nov: separate "ReadWell Save" Access app, preflight bypass for extension CORS; first live save from Vivaldi.
 - S-026 "Save to ReadWell" Shortcut: accepts web pages, links and text containing a link; confirms in a notification.
 - S-027 Shortcut fallback to an iCloud Drive inbox when the Mac is unreachable; imported once on next start.
-- S-028 Shortcut tested from Medium, Quiche, Mail and two more apps (checklist with Susan).
+- S-028 Shortcut tested from Medium, Quiche, the Fastmail app (Medium Daily Digest links) and two more apps (checklist with Susan). Susan uses Fastmail, not Apple Mail.
 - S-029 Install on iPhone and iPad Home Screens; stays signed in through a week of use.
 
 ## M3 Offline, highlights and notes
