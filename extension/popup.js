@@ -51,12 +51,23 @@ async function save() {
   let response, data = null;
   try {
     response = await fetch(settings.server + '/api/capture', {
-      method: 'POST', headers, credentials: 'omit',
+      method: 'POST', headers, credentials: 'omit', redirect: 'manual',
       body: JSON.stringify({url: page.url, title: page.title, html: page.html, source: 'extension'}),
     });
     data = await response.json().catch(() => null);
   } catch {
     show('Unable to reach ReadWell. Is your Mac Studio on?', 'error');
+    return;
+  }
+  // Cloudflare answers a refused save token with a redirect to its sign-in page.
+  if (response.type === 'opaqueredirect' || (response.status >= 300 && response.status < 400)) {
+    show(settings.clientId
+      ? 'Cloudflare didn’t accept the save token. Check the Client ID and Client secret in Settings.'
+      : 'Cloudflare needs the save token. Add the Client ID and Client secret in Settings.', 'error');
+    return;
+  }
+  if (response.status === 403 && !data) {
+    show('Cloudflare refused this save. Check the Client ID and Client secret in Settings.', 'error');
     return;
   }
   if (!response.ok) {
