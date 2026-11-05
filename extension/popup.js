@@ -57,6 +57,25 @@ async function badge(tabId, text) {
   } catch { /* badge is optional */ }
 }
 
+function askForSiteAccess(origin) {
+  show('ReadWell needs permission to reach ' + new URL(origin.replace('/*', '')).host + '.', 'error');
+  let button = document.querySelector('#allow');
+  if (!button) {
+    button = document.createElement('button');
+    button.id = 'allow';
+    button.type = 'button';
+    button.textContent = 'Allow and Save';
+    status.after(button);
+  }
+  button.onclick = async () => {
+    let granted = false;
+    try { granted = await chrome.permissions.request({origins: [origin]}); } catch { granted = false; }
+    button.remove();
+    if (granted) { show('Saving this page…'); await save(); }
+    else show('Permission wasn’t given. In vivaldi://extensions, open Details and set Site access to “On all sites” or add readwell.susanpearson.uk.', 'error');
+  };
+}
+
 async function save() {
   const settings = await loadSettings();
   if (!settings.key) { await showSettings('Add your ReadWell details to start saving.'); return; }
@@ -71,6 +90,13 @@ async function save() {
   if (!/^https?:/i.test(page.url || '')) { show('This page can’t be saved. Open an article first.', 'error'); return; }
   if (page.html && page.html.length > MAX_HTML) page.html = null;
 
+  // Vivaldi and Chrome let people withhold an extension's site access; without it the
+  // browser blocks the request before it leaves. Ask for it with a button (needs a click).
+  const origin = new URL(settings.server).origin + '/*';
+  let allowed = true;
+  try { allowed = await chrome.permissions.contains({origins: [origin]}); } catch { /* older browsers: assume granted */ }
+  if (!allowed) { askForSiteAccess(origin); return; }
+
   const headers = {'Content-Type': 'application/json', 'X-ReadWell-Key': settings.key};
   if (settings.clientId && settings.clientSecret) {
     headers['CF-Access-Client-Id'] = settings.clientId;
@@ -83,8 +109,8 @@ async function save() {
       body: JSON.stringify({url: page.url, title: page.title, html: page.html, source: 'extension'}),
     });
     data = await response.json().catch(() => null);
-  } catch {
-    show('Unable to reach ReadWell. Is your Mac Studio on?', 'error');
+  } catch (error) {
+    show(`Unable to reach ReadWell. Is your Mac Studio on? (${error?.message || 'network error'})`, 'error');
     return;
   }
   // Cloudflare answers a refused save token with a redirect to its sign-in page.
