@@ -9,7 +9,7 @@ export const PUBLIC_PATHS = new Set(['/manifest.webmanifest', '/icons/apple-touc
 const plain = {...SECURITY, 'Cache-Control': 'no-store', 'Content-Type': 'text/plain; charset=utf-8'};
 function refuse(status, text, url) {
   return url.pathname.startsWith('/api/')
-    ? new Response(JSON.stringify({error: text, signIn: status === 401}), {status, headers: {...plain, 'Content-Type': 'application/json'}})
+    ? new Response(JSON.stringify({error: text, signIn: status === 401, notice: 'Not saved: ' + text}), {status, headers: {...plain, 'Content-Type': 'application/json'}})
     : new Response(text, {status, headers: plain});
 }
 

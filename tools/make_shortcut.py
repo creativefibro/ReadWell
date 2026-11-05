@@ -78,53 +78,26 @@ def build():
     client_id = secret_text('Paste the Client ID below (1Password: “ReadWell capture token”). It ends in .access', 'PASTE-CLIENT-ID')
     client_secret = secret_text('Paste the Client secret below (1Password: “ReadWell capture token”).', 'PASTE-CLIENT-SECRET')
 
-    # Look for a link in what was shared, then in the clipboard (Medium's "Share via…" shares only a
-    # picture card, so Susan taps Copy link first). One text holds both, shared item first, so a
-    # shared link always wins; then take the first link found.
+    # Send everything: what was shared, then the clipboard (Medium's "Share via…" shares only a
+    # picture card, so Susan taps Copy link first). ReadWell finds the first link and replies with
+    # a "notice" to show. No If blocks: iOS 27 ignored their conditions, so the Shortcut is linear.
     clip = new_id()
     actions.append(act('is.workflow.actions.getclipboard', UUID=clip))
     both = new_id()
     actions.append(act('is.workflow.actions.gettext', UUID=both,
                        WFTextActionText=text({'Type': 'ExtensionInput'}, '\n', output(clip, 'Clipboard'))))
-    links = new_id()
-    actions.append(act('is.workflow.actions.detect.link', UUID=links, WFInput=attachment(output(both, 'Text'))))
-    first = new_id()
-    actions.append(act('is.workflow.actions.getitemfromlist', UUID=first, WFItemSpecifier='First Item',
-                       WFInput=attachment(output(links, 'URLs'))))
-    link = output(first, 'Item from List')
-
-    has_link = new_id()
-    actions.append(condition(has_link, link, 100))
-
     fetched = new_id()
     actions.append(act('is.workflow.actions.downloadurl', UUID=fetched, WFURL=ENDPOINT, WFHTTPMethod='POST',
                        ShowHeaders=True, WFHTTPBodyType='JSON',
-                       WFJSONValues=dictionary([('url', text(link)), ('source', text('shortcut'))]),
+                       WFJSONValues=dictionary([('text', text(output(both, 'Text'))), ('source', text('shortcut'))]),
                        WFHTTPHeaders=dictionary([('X-ReadWell-Key', text(key)),
                                                  ('CF-Access-Client-Id', text(client_id)),
                                                  ('CF-Access-Client-Secret', text(client_secret))])))
-    message = new_id()
-    actions.append(act('is.workflow.actions.getvalueforkey', UUID=message, WFGetDictionaryValueType='Value',
-                       WFDictionaryKey='message', WFInput=attachment(output(fetched, 'Contents of URL'))))
-
-    saved = new_id()
-    actions.append(condition(saved, output(message, 'Dictionary Value'), 100))
+    notice = new_id()
+    actions.append(act('is.workflow.actions.getvalueforkey', UUID=notice, WFGetDictionaryValueType='Value',
+                       WFDictionaryKey='notice', WFInput=attachment(output(fetched, 'Contents of URL'))))
     actions.append(act('is.workflow.actions.notification', WFNotificationActionTitle='ReadWell',
-                       WFNotificationActionBody=text(output(message, 'Dictionary Value')), WFNotificationActionSound=False))
-    actions.append(act('is.workflow.actions.conditional', GroupingIdentifier=saved, WFControlFlowMode=1))
-    problem = new_id()
-    actions.append(act('is.workflow.actions.getvalueforkey', UUID=problem, WFGetDictionaryValueType='Value',
-                       WFDictionaryKey='error', WFInput=attachment(output(fetched, 'Contents of URL'))))
-    actions.append(act('is.workflow.actions.notification', WFNotificationActionTitle='ReadWell',
-                       WFNotificationActionBody=text('Couldn’t save this. Is your Mac Studio on? ', output(problem, 'Dictionary Value')),
-                       WFNotificationActionSound=False))
-    actions.append(act('is.workflow.actions.conditional', GroupingIdentifier=saved, WFControlFlowMode=2))
-
-    actions.append(act('is.workflow.actions.conditional', GroupingIdentifier=has_link, WFControlFlowMode=1))
-    actions.append(act('is.workflow.actions.notification', WFNotificationActionTitle='ReadWell',
-                       WFNotificationActionBody=text('No link found. In Medium, tap Copy link first, then Share via… › Save to ReadWell. Saw: ', output(both, 'Text')),
-                       WFNotificationActionSound=False))
-    actions.append(act('is.workflow.actions.conditional', GroupingIdentifier=has_link, WFControlFlowMode=2))
+                       WFNotificationActionBody=text(output(notice, 'Dictionary Value')), WFNotificationActionSound=False))
 
     return {
         'WFWorkflowClientVersion': '2607.0.2',

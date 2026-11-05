@@ -174,3 +174,26 @@ test('a Medium link with no fetched details shows Medium as its site', async () 
   const r = await t.capture({url: 'https://medium.com/@a/b-0011', title: 'B'});
   assert.equal(t.store.getArticle(r.body.id).site, 'Medium');
 });
+
+test('S-026 the Shortcut can send text; ReadWell finds the first link in it', async () => {
+  const {firstLinkIn} = await import('../lib/urls.mjs');
+  const medium = 'https://medium.com/macoclock/apple-is-coming-for-the-kindle-and-the-new-ipad-mini-proves-just-that-0b4b88bd29cd';
+  assert.equal(firstLinkIn(`${medium}\n${medium}`), medium);
+  assert.equal(firstLinkIn(`Apple Is Coming for the Kindle\n${medium}?source=email-digest.`), medium + '?source=email-digest');
+  assert.equal(firstLinkIn('Read this (https://example.com/a/b).'), 'https://example.com/a/b');
+  assert.equal(firstLinkIn('“https://example.com/x”'), 'https://example.com/x');
+  assert.equal(firstLinkIn('no link here\n'), null);
+  assert.equal(firstLinkIn('javascript:alert(1) ftp://x.test/'), null);
+  const t = setup();
+  const r = await t.capture({text: `[image]\n${medium}?source=share`, title: 'Apple Is Coming for the Kindle', source: 'shortcut'});
+  assert.equal(r.status, 201);
+  assert.equal(r.body.notice, 'Saved to ReadWell: Apple Is Coming for the Kindle');
+  assert.equal(t.store.getArticle(r.body.id).kind, 'medium');
+  const again = await t.capture({text: medium});
+  assert.equal(again.body.notice, 'Already in your Queue: Apple Is Coming for the Kindle');
+  const none = await t.capture({text: 'just a picture'});
+  assert.equal(none.status, 400);
+  assert.match(none.body.notice, /^Not saved: No link found/);
+  const badKey = await t.call('/api/capture', {method: 'POST', body: {text: medium}, headers: {'x-readwell-key': 'nope'}});
+  assert.match(badKey.body.notice, /capture key/);
+});

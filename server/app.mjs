@@ -73,13 +73,14 @@ export function createApp({store, fetchPage, captureKey, origin}) {
         }
         if (method !== 'POST') return json({error: 'Method not allowed'}, 405);
         const withCors = (response) => { if (extension) for (const [k, v] of Object.entries(corsFor(from))) response.headers.set(k, v); return response; };
-        if (!sameKey(request.headers.get('x-readwell-key'), captureKey)) return withCors(json({error: 'This device isn’t set up to save to ReadWell.'}, 401));
+        if (!sameKey(request.headers.get('x-readwell-key'), captureKey)) return withCors(json({error: 'This device isn’t set up to save to ReadWell.', notice: 'Not saved: the capture key in the Shortcut doesn’t match. Paste it again from 1Password.'}, 401));
         const input = await body(request, 7_000_000);
         const outcome = await store.saveCapture(input, {fetchPage});
         const a = outcome.article;
         return withCors(json({
           result: outcome.result,
           message: outcome.result === 'duplicate' ? 'Already in your Queue' : 'Saved to ReadWell',
+          notice: (outcome.result === 'duplicate' ? 'Already in your Queue: ' : 'Saved to ReadWell: ') + (a?.title || ''),
           id: a?.id, title: a?.title, kind: a?.kind, lastFinished: outcome.lastFinished || null,
         }, outcome.result === 'saved' ? 201 : 200));
       }
@@ -118,7 +119,8 @@ export function createApp({store, fetchPage, captureKey, origin}) {
       return new Response('Not found', {status: 404, headers: {...SECURITY, 'Content-Type': 'text/plain'}});
     } catch (error) {
       const status = Number.isInteger(error.status) ? error.status : 500;
-      return json({error: status === 500 ? 'ReadWell couldn’t complete that. Please try again.' : error.message}, status);
+      const message = status === 500 ? 'ReadWell couldn’t complete that. Please try again.' : error.message;
+      return json({error: message, notice: 'Not saved: ' + message}, status);
     }
   };
 }
