@@ -1,5 +1,5 @@
 // Settings live in this browser's extension storage only.
-export const DEFAULTS = {server: 'http://127.0.0.1:4320', key: '', clientId: '', clientSecret: ''};
+export const DEFAULTS = {server: 'https://readwell.susanpearson.uk', key: '', clientId: '', clientSecret: ''};
 export async function loadSettings() {
   return {...DEFAULTS, ...(await chrome.storage.local.get(Object.keys(DEFAULTS)))};
 }
