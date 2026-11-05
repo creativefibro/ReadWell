@@ -125,9 +125,12 @@ async function save() {
     return;
   }
   if (!response.ok) {
-    show(response.status === 401 || response.status === 403
-      ? 'ReadWell didn’t accept this browser. Check the capture key in Settings.'
-      : (data?.error || 'ReadWell couldn’t save this page.'), 'error');
+    // Name the refusal: a wrong capture key, or ReadWell not recognising the save token.
+    show(data?.signIn
+      ? 'ReadWell didn’t recognise the save token. Its Client ID may not match the one ReadWell was set up with.'
+      : response.status === 401
+        ? 'ReadWell didn’t accept the capture key. Copy it again from your Mac into Settings.'
+        : (data?.error || 'ReadWell couldn’t save this page.'), 'error');
     return;
   }
   if (data.result === 'duplicate') {
