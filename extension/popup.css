@@ -1,2 +1,4 @@
-body { width: 290px; padding: 14px 16px; }
-.row { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }
+body { width: 300px; padding: 14px 16px; }
+.row { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; gap: 8px; }
+#settings label { margin-top: 10px; }
+#saved { min-height: 1.2em; margin: 10px 0 0; }

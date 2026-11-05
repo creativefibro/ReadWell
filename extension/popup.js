@@ -1,11 +1,39 @@
 // Saves the active tab: sends the page as currently shown (so signed-in content is
 // included) to ReadWell, which tidies it the same way as links saved from iPhone.
-import {loadSettings} from './settings.js';
+import {loadSettings, saveSettings} from './settings.js';
 
 const status = document.querySelector('#status');
 const titleEl = document.querySelector('#title');
 const openLink = document.querySelector('#open');
-document.querySelector('#setup').addEventListener('click', (e) => { e.preventDefault(); chrome.runtime.openOptionsPage(); });
+// Settings live inside the popup (Vivaldi can block extension pages opened in a tab).
+const resultEl = document.querySelector('#result');
+const form = document.querySelector('#settings');
+const savedEl = document.querySelector('#saved');
+async function showSettings(message) {
+  const s = await loadSettings();
+  for (const k of ['server', 'key', 'clientId', 'clientSecret']) form[k].value = s[k];
+  savedEl.textContent = message || '';
+  savedEl.className = message ? 'error' : 'soft';
+  resultEl.hidden = true;
+  form.hidden = false;
+  form[s.key ? 'clientId' : 'key'].focus();
+}
+document.querySelector('#setup').addEventListener('click', (e) => { e.preventDefault(); showSettings(); });
+document.querySelector('#cancel').addEventListener('click', (e) => { e.preventDefault(); form.hidden = true; resultEl.hidden = false; });
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  try {
+    await saveSettings(Object.fromEntries(new FormData(form)));
+    form.hidden = true;
+    resultEl.hidden = false;
+    show('Settings saved. Saving this page…');
+    titleEl.hidden = true;
+    await save();
+  } catch (error) {
+    savedEl.textContent = error.message;
+    savedEl.className = 'error';
+  }
+});
 
 const MAX_HTML = 6_000_000;
 
@@ -31,7 +59,7 @@ async function badge(tabId, text) {
 
 async function save() {
   const settings = await loadSettings();
-  if (!settings.key) { show('Add your ReadWell capture key in Settings first.', 'error'); return; }
+  if (!settings.key) { await showSettings('Add your ReadWell details to start saving.'); return; }
   // ?tab=<id> lets the automated check aim the popup at a specific tab.
   const forced = Number(new URLSearchParams(location.search).get('tab'));
   const [tab] = forced ? [await chrome.tabs.get(forced)] : await chrome.tabs.query({active: true, currentWindow: true});

@@ -3,8 +3,23 @@
 <link rel="stylesheet" href="popup.css"></head>
 <body>
   <h1>ReadWell</h1>
-  <p id="status" role="status" class="soft">Saving this page…</p>
-  <p id="title" class="title" hidden></p>
-  <div class="row"><a id="open" href="#" hidden>Open your Queue</a><a id="setup" href="#">Settings</a></div>
+  <section id="result">
+    <p id="status" role="status" class="soft">Saving this page…</p>
+    <p id="title" class="title" hidden></p>
+    <div class="row"><a id="open" href="#" hidden>Open your Queue</a><a id="setup" href="#">Settings</a></div>
+  </section>
+  <form id="settings" hidden>
+    <p class="soft">These stay in this browser only.</p>
+    <label for="server">ReadWell address</label>
+    <input id="server" name="server" type="url" required>
+    <label for="key">Capture key</label>
+    <input id="key" name="key" type="password" required autocomplete="off">
+    <label for="clientId">Client ID</label>
+    <input id="clientId" name="clientId" autocomplete="off" placeholder="…….access">
+    <label for="clientSecret">Client secret</label>
+    <input id="clientSecret" name="clientSecret" type="password" autocomplete="off">
+    <p id="saved" role="status" class="soft"></p>
+    <div class="row"><a id="cancel" href="#">Back</a><button type="submit">Save Settings</button></div>
+  </form>
   <script src="popup.js" type="module"></script>
 </body></html>
