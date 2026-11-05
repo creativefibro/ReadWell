@@ -159,9 +159,9 @@ Status: done (live in Vivaldi 5 Nov)
 - S-023 Serve icon and manifest paths publicly so Home Screen install works. Done 5 Nov (Access path overrides, as Flourish).
 - S-024 Show "Sign in again" when the session expires, without losing anything. Built.
 - S-025 Capture path accepts only a service token plus a ReadWell capture key. Done 5 Nov: separate "ReadWell Save" Access app, preflight bypass for extension CORS; first live save from Vivaldi.
-- S-026 "Save to ReadWell" Shortcut: accepts web pages, links and text containing a link; confirms in a notification.
+- S-026 "Save to ReadWell" Shortcut: accepts web pages, links and text containing a link; confirms in a notification. Done 5 Nov: linear Shortcut sends shared item plus clipboard; ReadWell finds the link. Lessons: iOS 27 ignored legacy If conditions, a non-existent trim action sent empty credentials, macOS import questions refused pasted values.
 - S-027 Shortcut fallback to an iCloud Drive inbox when the Mac is unreachable; imported once on next start.
-- S-028 Shortcut tested from Medium, Quiche, the Fastmail app (Medium Daily Digest links) and two more apps (checklist with Susan). Susan uses Fastmail, not Apple Mail.
+- S-028 Shortcut tested from Medium, Quiche, the Fastmail app (Medium Daily Digest links) and two more apps (checklist with Susan). Susan uses Fastmail, not Apple Mail. Medium works (Copy link, then Share via…). Quiche and Fastmail still to try.
 - S-029 Install on iPhone and iPad Home Screens; stays signed in through a week of use.
 
 ## M3 Offline, highlights and notes
