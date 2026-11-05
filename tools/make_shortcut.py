@@ -67,30 +67,20 @@ def build():
     client_id = secret_text('Paste the Client ID below (1Password: “ReadWell capture token”). It ends in .access', 'PASTE-CLIENT-ID')
     client_secret = secret_text('Paste the Client secret below (1Password: “ReadWell capture token”).', 'PASTE-CLIENT-SECRET')
 
-    # Whatever the app shares (a web page, a link, or text containing a link): find the first link.
-    # Some apps (Medium's "Share via…") share only a picture card, so fall back to a copied link.
+    # Look for a link in what was shared, then in the clipboard (Medium's "Share via…" shares only a
+    # picture card, so Susan taps Copy link first). One text holds both, shared item first, so a
+    # shared link always wins; then take the first link found.
+    clip = new_id()
+    actions.append(act('is.workflow.actions.getclipboard', UUID=clip))
+    both = new_id()
+    actions.append(act('is.workflow.actions.gettext', UUID=both,
+                       WFTextActionText=text({'Type': 'ExtensionInput'}, '\n', output(clip, 'Clipboard'))))
     links = new_id()
-    actions.append(act('is.workflow.actions.detect.link', UUID=links, WFInput=attachment({'Type': 'ExtensionInput'})))
+    actions.append(act('is.workflow.actions.detect.link', UUID=links, WFInput=attachment(output(both, 'Text'))))
     first = new_id()
     actions.append(act('is.workflow.actions.getitemfromlist', UUID=first, WFItemSpecifier='First Item',
                        WFInput=attachment(output(links, 'URLs'))))
-    actions.append(act('is.workflow.actions.setvariable', WFVariableName='Link',
-                       WFInput=attachment(output(first, 'Item from List'))))
-    link = {'Type': 'Variable', 'VariableName': 'Link'}
-
-    no_link = new_id()
-    actions.append(act('is.workflow.actions.conditional', GroupingIdentifier=no_link, WFControlFlowMode=0,
-                       WFCondition=101, WFInput={'Type': 'Variable', 'Variable': attachment(link)}))
-    clip = new_id()
-    actions.append(act('is.workflow.actions.getclipboard', UUID=clip))
-    clip_links = new_id()
-    actions.append(act('is.workflow.actions.detect.link', UUID=clip_links, WFInput=attachment(output(clip, 'Clipboard'))))
-    clip_first = new_id()
-    actions.append(act('is.workflow.actions.getitemfromlist', UUID=clip_first, WFItemSpecifier='First Item',
-                       WFInput=attachment(output(clip_links, 'URLs'))))
-    actions.append(act('is.workflow.actions.setvariable', WFVariableName='Link',
-                       WFInput=attachment(output(clip_first, 'Item from List'))))
-    actions.append(act('is.workflow.actions.conditional', GroupingIdentifier=no_link, WFControlFlowMode=2))
+    link = output(first, 'Item from List')
 
     has_link = new_id()
     actions.append(act('is.workflow.actions.conditional', GroupingIdentifier=has_link, WFControlFlowMode=0,
@@ -123,7 +113,7 @@ def build():
 
     actions.append(act('is.workflow.actions.conditional', GroupingIdentifier=has_link, WFControlFlowMode=1))
     actions.append(act('is.workflow.actions.notification', WFNotificationActionTitle='ReadWell',
-                       WFNotificationActionBody=text('No link found. In Medium, tap Copy link first, then Share via… › Save to ReadWell.'),
+                       WFNotificationActionBody=text('No link found. In Medium, tap Copy link first, then Share via… › Save to ReadWell. Saw: ', output(both, 'Text')),
                        WFNotificationActionSound=False))
     actions.append(act('is.workflow.actions.conditional', GroupingIdentifier=has_link, WFControlFlowMode=2))
 
