@@ -150,15 +150,15 @@ Acceptance:
 UX:
 - Surface: toolbar button with a small popup showing the result
 - Words: "Saved to ReadWell", "Already in your Queue", "Unable to reach ReadWell. Is your Mac Studio on?"
-Status: done (Susan to load it in Vivaldi and save a signed-in article)
+Status: done (live in Vivaldi 5 Nov)
 
 ## M2 Live on your devices
-- S-020 Install ReadWell as a login service on the Mac Studio (Flourish installer pattern, own folder and port 4322). Built and dry-run tested; Susan runs it on the Mac.
-- S-021 Publish readwell.susanpearson.uk through its own Cloudflare Tunnel (Susan approves DNS route).
-- S-022 Protect it with its own Access application: Susan's email, passkey, one-month session.
-- S-023 Serve icon and manifest paths publicly so Home Screen install works.
+- S-020 Install ReadWell as a login service on the Mac Studio (Flourish installer pattern, own folder and port 4322). Done 5 Nov.
+- S-021 Publish readwell.susanpearson.uk through its own Cloudflare Tunnel. Done 5 Nov (tunnel "ReadWell Mac Studio"; token rotated after an on-screen exposure).
+- S-022 Protect it with its own Access application: accounts@susanpearson.uk, email code or passkey, one-month session. Done 5 Nov.
+- S-023 Serve icon and manifest paths publicly so Home Screen install works. Done 5 Nov (Access path overrides, as Flourish).
 - S-024 Show "Sign in again" when the session expires, without losing anything. Built.
-- S-025 Capture path accepts only a service token plus a ReadWell capture key. Built and tested with signed test tokens.
+- S-025 Capture path accepts only a service token plus a ReadWell capture key. Done 5 Nov: separate "ReadWell Save" Access app, preflight bypass for extension CORS; first live save from Vivaldi.
 - S-026 "Save to ReadWell" Shortcut: accepts web pages, links and text containing a link; confirms in a notification.
 - S-027 Shortcut fallback to an iCloud Drive inbox when the Mac is unreachable; imported once on next start.
 - S-028 Shortcut tested from Medium, Quiche, Mail and two more apps (checklist with Susan).
