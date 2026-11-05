@@ -69,9 +69,13 @@ def build():
         actions.append(act('is.workflow.actions.comment', WFCommentActionText=label))
         u = new_id()
         actions.append(act('is.workflow.actions.gettext', UUID=u, WFTextActionText=text(placeholder)))
-        # Pasted values often carry a trailing line break; trim it before it reaches a header.
+        # Pasted values often carry a trailing line break; strip whitespace at either end with the
+        # standard Replace Text action (an earlier "trim" identifier was not a real action and
+        # passed on nothing, so the Shortcut sent empty credentials).
         t = new_id()
-        actions.append(act('is.workflow.actions.text.trimwhitespace', UUID=t, WFInput=attachment(output(u, 'Text'))))
+        actions.append(act('is.workflow.actions.text.replace', UUID=t, WFInput=text(output(u, 'Text')),
+                           WFReplaceTextFind='^\\s+|\\s+$', WFReplaceTextReplace='',
+                           WFReplaceTextRegularExpression=True, WFReplaceTextCaseSensitive=False))
         return output(t, 'Updated Text')
 
     key = secret_text('Paste your ReadWell capture key in the box below (1Password: “ReadWell capture key”).', 'PASTE-CAPTURE-KEY')

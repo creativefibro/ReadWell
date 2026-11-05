@@ -73,7 +73,7 @@ export function createApp({store, fetchPage, captureKey, origin}) {
         }
         if (method !== 'POST') return json({error: 'Method not allowed'}, 405);
         const withCors = (response) => { if (extension) for (const [k, v] of Object.entries(corsFor(from))) response.headers.set(k, v); return response; };
-        if (!sameKey(request.headers.get('x-readwell-key'), captureKey)) return withCors(json({error: 'This device isn’t set up to save to ReadWell.', notice: 'Not saved: the capture key in the Shortcut doesn’t match. Paste it again from 1Password.'}, 401));
+        if (!sameKey((request.headers.get('x-readwell-key') || '').trim(), captureKey)) return withCors(json({error: 'This device isn’t set up to save to ReadWell.', notice: 'Not saved: the capture key in the Shortcut doesn’t match. Paste it again from 1Password.'}, 401));
         const input = await body(request, 7_000_000);
         const outcome = await store.saveCapture(input, {fetchPage});
         const a = outcome.article;
