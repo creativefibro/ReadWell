@@ -19,18 +19,41 @@ const TUNNEL_LABEL = 'uk.creativefibro.readwell.tunnel';
 if (!dry && process.platform !== 'darwin') throw Error('Run this on the Mac Studio');
 if (!existsSync(join(home, 'config.json'))) throw Error('Install ReadWell first: node scripts/mac-install.mjs');
 
-// Hidden input for secrets: characters are not echoed.
-function ask(question, {secret = false} = {}) {
+// Input. Secrets are read in raw mode and nothing is echoed: not the characters, not dots.
+function ask(question) {
   return new Promise((resolve) => {
     const rl = createInterface({input: process.stdin, output: process.stdout, terminal: true});
-    if (secret) rl._writeToOutput = (s) => { if (s.includes(question)) process.stdout.write(s); };
-    rl.question(question, (answer) => { rl.close(); if (secret) process.stdout.write('\n'); resolve(answer.trim()); });
+    rl.question(question, (answer) => { rl.close(); resolve(answer.trim()); });
+  });
+}
+function askSecret(question) {
+  return new Promise((resolve, reject) => {
+    const input = process.stdin;
+    if (!input.isTTY) return reject(Error('Run this in Terminal'));
+    process.stdout.write(question);
+    let value = '';
+    input.setRawMode(true);
+    input.resume();
+    input.setEncoding('utf8');
+    const onData = (chunk) => {
+      for (const ch of chunk) {
+        if (ch === '\u0003') { input.setRawMode(false); process.stdout.write('\n'); process.exit(130); }
+        if (ch === '\r' || ch === '\n') {
+          input.setRawMode(false); input.pause(); input.off('data', onData);
+          process.stdout.write(value ? '[received, not shown]\n' : '\n');
+          return resolve(value.trim());
+        }
+        if (ch === '\u007f' || ch === '\b') value = value.slice(0, -1);
+        else if (ch >= ' ' && !ch.startsWith('\u001b')) value += ch;
+      }
+    };
+    input.on('data', onData);
   });
 }
 async function value(env, question, check, hint, opts) {
   if (dry) { const v = process.env[env] || ''; if (!check(v)) throw Error(`${env}: ${hint}`); return v; }
   for (;;) {
-    const v = await ask(question, opts);
+    const v = opts?.secret ? await askSecret(question) : await ask(question);
     if (check(v)) return v;
     console.log('  ' + hint);
   }
@@ -42,15 +65,18 @@ export function tunnelId(token) {
   try { const t = JSON.parse(Buffer.from(token, 'base64').toString()); return typeof t.t === 'string' && t.a && t.s ? t.t : null; } catch { return null; }
 }
 
-console.log('ReadWell: connect to Cloudflare. Paste each value from the setup guide, then press Return.\n');
-const audience = await value('READWELL_AUD', '1. ReadWell application Audience (AUD) tag: ', isAud, 'That should be 64 letters and numbers, from the ReadWell application’s Overview.');
-const captureAudience = await value('READWELL_SAVE_AUD', '2. ReadWell Save application Audience (AUD) tag: ', (v) => isAud(v) && v !== audience, 'Use the AUD tag of the separate “ReadWell Save” application.');
-const serviceClientId = await value('READWELL_CLIENT_ID', '3. Service token Client ID: ', isClientId, 'It ends in “.access”.');
-const tunnelToken = await value('READWELL_TUNNEL_TOKEN', '4. Tunnel token (hidden as you paste): ', (v) => !!tunnelId(v), 'Copy only the long token after “--token” in the tunnel’s install command.', {secret: true});
+const tunnelOnly = process.argv.includes('--tunnel');
+let config0 = JSON.parse(readFileSync(join(home, 'config.json'), 'utf8'));
+if (tunnelOnly && !config0.audience) throw Error('Run the full connect first (without --tunnel)');
+console.log(tunnelOnly ? 'ReadWell: replace the tunnel token.\n' : 'ReadWell: connect to Cloudflare. Paste each value from the setup guide, then press Return.\n');
+const audience = tunnelOnly ? config0.audience : await value('READWELL_AUD', '1. ReadWell application Audience (AUD) tag: ', isAud, 'That should be 64 letters and numbers, from the ReadWell application’s Overview.');
+const captureAudience = tunnelOnly ? config0.captureAudience : await value('READWELL_SAVE_AUD', '2. ReadWell Save application Audience (AUD) tag: ', (v) => isAud(v) && v !== audience, 'Use the AUD tag of the separate “ReadWell Save” application.');
+const serviceClientId = tunnelOnly ? config0.serviceClientId : await value('READWELL_CLIENT_ID', '3. Service token Client ID: ', isClientId, 'It ends in “.access”.');
+const tunnelToken = await value('READWELL_TUNNEL_TOKEN', tunnelOnly ? 'New tunnel token (nothing appears as you paste): ' : '4. Tunnel token (nothing appears as you paste): ', (v) => !!tunnelId(v), 'Copy only the long token after “--token” in the tunnel’s install command.', {secret: true});
 
 // Private configuration, written atomically.
 const configPath = join(home, 'config.json');
-const config = {...JSON.parse(readFileSync(configPath, 'utf8')), origin: ORIGIN, issuer: ISSUER, email: EMAIL, audience, captureAudience, serviceClientId};
+const config = {...config0, origin: ORIGIN, issuer: ISSUER, email: EMAIL, audience, captureAudience, serviceClientId};
 const temp = configPath + '.' + randomUUID();
 writeFileSync(temp, JSON.stringify(config, null, 2) + '\n', {mode: 0o600});
 renameSync(temp, configPath);
@@ -83,6 +109,7 @@ const domain = `gui/${process.getuid()}`;
 try { execFileSync('/bin/launchctl', ['bootout', `${domain}/${TUNNEL_LABEL}`], {stdio: 'ignore'}); } catch {}
 await new Promise((r) => setTimeout(r, 500));
 execFileSync('/bin/launchctl', ['bootstrap', domain, agent], {stdio: 'ignore'});
+if (tunnelOnly) { console.log('\nDone. The tunnel has restarted with its new token.'); process.exit(0); }
 // Restart ReadWell so it reads the new Access details.
 execFileSync('/bin/launchctl', ['kickstart', '-k', `${domain}/uk.creativefibro.readwell`], {stdio: 'ignore'});
 
