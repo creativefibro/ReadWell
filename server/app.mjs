@@ -21,6 +21,12 @@ export const SECURITY = {
     "form-action 'self'; frame-ancestors 'none'",
 };
 
+const corsFor = (origin) => ({
+  'Access-Control-Allow-Origin': origin, 'Vary': 'Origin',
+  'Access-Control-Allow-Methods': 'POST',
+  'Access-Control-Allow-Headers': 'content-type, x-readwell-key, cf-access-client-id, cf-access-client-secret',
+});
+
 const json = (body, status = 200) => new Response(JSON.stringify(body), {
   status, headers: {...SECURITY, 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store'},
 });
@@ -57,16 +63,25 @@ export function createApp({store, fetchPage, captureKey, origin}) {
     const method = request.method;
     try {
       if (pathname === '/api/capture') {
+        // Browser extensions send a CORS preflight before saving. Answer it for extension
+        // origins only; the save itself still needs the service token and the capture key.
+        const from = request.headers.get('origin') || '';
+        const extension = /^(chrome|moz)-extension:\/\/[a-z0-9-]{1,64}$/.test(from);
+        if (method === 'OPTIONS') {
+          if (!extension) return new Response(null, {status: 403, headers: SECURITY});
+          return new Response(null, {status: 204, headers: {...SECURITY, ...corsFor(from), 'Access-Control-Max-Age': '600'}});
+        }
         if (method !== 'POST') return json({error: 'Method not allowed'}, 405);
-        if (!sameKey(request.headers.get('x-readwell-key'), captureKey)) return json({error: 'This device isn’t set up to save to ReadWell.'}, 401);
+        const withCors = (response) => { if (extension) for (const [k, v] of Object.entries(corsFor(from))) response.headers.set(k, v); return response; };
+        if (!sameKey(request.headers.get('x-readwell-key'), captureKey)) return withCors(json({error: 'This device isn’t set up to save to ReadWell.'}, 401));
         const input = await body(request, 7_000_000);
         const outcome = await store.saveCapture(input, {fetchPage});
         const a = outcome.article;
-        return json({
+        return withCors(json({
           result: outcome.result,
           message: outcome.result === 'duplicate' ? 'Already in your Queue' : 'Saved to ReadWell',
           id: a?.id, title: a?.title, kind: a?.kind, lastFinished: outcome.lastFinished || null,
-        }, outcome.result === 'saved' ? 201 : 200);
+        }, outcome.result === 'saved' ? 201 : 200));
       }
 
       if (pathname.startsWith('/api/')) {

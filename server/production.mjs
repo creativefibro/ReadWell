@@ -17,6 +17,9 @@ export function createGate({config, verifier, app}) {
   return async function gate(request) {
     const url = new URL(request.url);
     if (url.origin !== config.origin) return refuse(421, 'Unrecognised hostname', url);
+    // Cloudflare passes CORS preflights for the save route straight through; they carry no
+    // credentials and the app answers them with headers only.
+    if (request.method === 'OPTIONS' && url.pathname === '/api/capture') return app(request);
     if (!['GET', 'HEAD', 'POST'].includes(request.method)) return refuse(405, 'Method not allowed', url);
     if (['GET', 'HEAD'].includes(request.method) && PUBLIC_PATHS.has(url.pathname)) {
       const response = await app(request);

@@ -145,3 +145,26 @@ test('the connect script stores Access details and the tunnel token privately', 
   for (const bad of [{READWELL_AUD: 'short'}, {READWELL_SAVE_AUD: 'a'.repeat(64)}, {READWELL_CLIENT_ID: 'abc'}, {READWELL_TUNNEL_TOKEN: 'not-a-token'}])
     assert.throws(() => execFileSync(process.execPath, ['--no-warnings', script('mac-connect.mjs'), '--dry-run'], {env: {...env, ...bad}, stdio: 'pipe'}), JSON.stringify(Object.keys(bad)));
 });
+
+test('extension preflights on the save route are answered; saving still needs both credentials', async () => {
+  const t = await gated();
+  const ext = 'chrome-extension://ecgpoehodpnnepmepkcflfmlaalkfodf';
+  const pre = await t.gate(new Request(ORIGIN + '/api/capture', {method: 'OPTIONS', headers: {origin: ext, 'access-control-request-method': 'POST'}}));
+  assert.equal(pre.status, 204);
+  assert.equal(pre.headers.get('access-control-allow-origin'), ext);
+  assert.match(pre.headers.get('access-control-allow-headers'), /x-readwell-key/);
+  assert.match(pre.headers.get('access-control-allow-headers'), /cf-access-client-secret/);
+  const site = await t.gate(new Request(ORIGIN + '/api/capture', {method: 'OPTIONS', headers: {origin: 'https://evil.test'}}));
+  assert.equal(site.status, 403);
+  assert.equal(site.headers.get('access-control-allow-origin'), null);
+  assert.equal((await t.gate(new Request(ORIGIN + '/api/queue', {method: 'OPTIONS', headers: {origin: ext}}))).status, 405, 'only the save route');
+  // Without Access the real save is refused, even from the extension.
+  const noAccess = await t.gate(new Request(ORIGIN + '/api/capture', {method: 'POST', headers: {origin: ext, 'x-readwell-key': KEY, 'content-type': 'application/json'}, body: '{"url":"https://example.com/a"}'}));
+  assert.equal(noAccess.status, 401);
+  const saved = await t.gate(new Request(ORIGIN + '/api/capture', {method: 'POST', headers: {origin: ext, 'cf-access-jwt-assertion': serviceToken(), 'x-readwell-key': KEY, 'content-type': 'application/json'}, body: '{"url":"https://example.com/a"}'}));
+  assert.equal(saved.status, 201);
+  assert.equal(saved.headers.get('access-control-allow-origin'), ext);
+  const wrongKey = await t.gate(new Request(ORIGIN + '/api/capture', {method: 'POST', headers: {origin: ext, 'cf-access-jwt-assertion': serviceToken(), 'x-readwell-key': 'nope', 'content-type': 'application/json'}, body: '{}'}));
+  assert.equal(wrongKey.status, 401);
+  assert.equal(wrongKey.headers.get('access-control-allow-origin'), ext, 'errors are readable by the extension');
+});
