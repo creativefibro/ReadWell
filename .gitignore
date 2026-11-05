@@ -6,3 +6,4 @@ node_modules/
 *.token
 .DS_Store
 __pycache__/
+shortcut/Save to ReadWell.shortcut
