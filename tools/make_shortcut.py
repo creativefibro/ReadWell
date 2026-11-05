@@ -1,7 +1,7 @@
 """Builds the "Save to ReadWell" Apple Shortcut (unsigned) for the iPhone and iPad Share Sheet.
 
-The file holds no secrets: Shortcuts asks for the capture key, Client ID and Client secret
-when it is imported (import questions). Sign it on the Mac before importing:
+The file holds no secrets: after importing, paste the capture key, Client ID and Client secret
+into the three labelled Text boxes in the Shortcuts editor. Sign it on the Mac before importing:
     shortcuts sign --mode anyone --input "Save to ReadWell (unsigned).shortcut" --output "Save to ReadWell.shortcut"
 
 Usage: python3 tools/make_shortcut.py OUTPUT_PATH
@@ -52,16 +52,20 @@ def act(identifier, **params):
 def build():
     actions, questions = [], []
 
-    def secret_text(prompt):
+    # Three labelled boxes Susan fills in once, in the Shortcuts editor. (Import questions
+    # were tried first; the macOS import sheet refused the pasted values.)
+    def secret_text(label, placeholder):
+        actions.append(act('is.workflow.actions.comment', WFCommentActionText=label))
         u = new_id()
-        questions.append({'ActionIndex': len(actions), 'Category': 'Parameter', 'DefaultValue': '',
-                          'ParameterKey': 'WFTextActionText', 'Text': prompt})
-        actions.append(act('is.workflow.actions.gettext', UUID=u, WFTextActionText=''))
-        return output(u, 'Text')
+        actions.append(act('is.workflow.actions.gettext', UUID=u, WFTextActionText=text(placeholder)))
+        # Pasted values often carry a trailing line break; trim it before it reaches a header.
+        t = new_id()
+        actions.append(act('is.workflow.actions.text.trimwhitespace', UUID=t, WFInput=attachment(output(u, 'Text'))))
+        return output(t, 'Updated Text')
 
-    key = secret_text('Paste your ReadWell capture key (1Password: “ReadWell capture key”).')
-    client_id = secret_text('Paste the Client ID (1Password: “ReadWell capture token”). It ends in .access')
-    client_secret = secret_text('Paste the Client secret (1Password: “ReadWell capture token”).')
+    key = secret_text('Paste your ReadWell capture key in the box below (1Password: “ReadWell capture key”).', 'PASTE-CAPTURE-KEY')
+    client_id = secret_text('Paste the Client ID below (1Password: “ReadWell capture token”). It ends in .access', 'PASTE-CLIENT-ID')
+    client_secret = secret_text('Paste the Client secret below (1Password: “ReadWell capture token”).', 'PASTE-CLIENT-SECRET')
 
     # Whatever the app shares (a web page, a link, or text containing a link): find the first link.
     links = new_id()
@@ -118,7 +122,7 @@ def build():
         'WFWorkflowOutputContentItemClasses': [],
         'WFWorkflowHasOutputFallback': False,
         'WFQuickActionSurfaces': [],
-        'WFWorkflowImportQuestions': questions,
+        'WFWorkflowImportQuestions': [],
         'WFWorkflowActions': actions,
     }
 
@@ -127,4 +131,4 @@ if __name__ == '__main__':
     workflow = build()
     with open(sys.argv[1], 'wb') as f:
         plistlib.dump(workflow, f, fmt=plistlib.FMT_BINARY)
-    print(f'{len(workflow["WFWorkflowActions"])} actions, {len(workflow["WFWorkflowImportQuestions"])} import questions')
+    print(f'{len(workflow["WFWorkflowActions"])} actions')
