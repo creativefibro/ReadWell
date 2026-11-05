@@ -162,7 +162,7 @@ Status: done (live in Vivaldi 5 Nov)
 - S-026 "Save to ReadWell" Shortcut: accepts web pages, links and text containing a link; confirms in a notification. Done 5 Nov: linear Shortcut sends shared item plus clipboard; ReadWell finds the link. Lessons: iOS 27 ignored legacy If conditions, a non-existent trim action sent empty credentials, macOS import questions refused pasted values.
 - S-027 Shortcut fallback to an iCloud Drive inbox when the Mac is unreachable; imported once on next start.
 - S-028 Shortcut tested from Medium, Quiche, the Fastmail app (Medium Daily Digest links) and two more apps (checklist with Susan). Susan uses Fastmail, not Apple Mail. Done 5 Nov: Medium and the Substack app (Copy link, then Share via…) and Quiche (shares the link directly) all save. Fastmail dropped: Susan never saves emails to read later; she opens them in a browser first.
-- S-029 Install on iPhone and iPad Home Screens; stays signed in through a week of use.
+- S-029 Install on iPhone and iPad Home Screens; stays signed in through a week of use. iPhone done 5 Nov; iPad by Susan. Watch: still signed in by 12 Nov.
 
 ## M3 Offline, highlights and notes
 - S-030 Save for Offline: article text and images stored on the device.
