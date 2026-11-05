@@ -45,6 +45,17 @@ def dictionary(pairs):
         'WFSerializationType': 'WFDictionaryFieldValue'}
 
 
+def condition(group, var, code):
+    """Start of an If block. Writes the current format (WFConditions, used since iOS 16) and the
+    older WFInput/WFCondition pair; iOS 27 ignored the older pair alone, so every test failed.
+    Codes: 100 = has any value, 101 = does not have any value."""
+    test = {'WFCondition': code, 'WFInput': {'Type': 'Variable', 'Variable': attachment(var)}}
+    return act('is.workflow.actions.conditional', GroupingIdentifier=group, WFControlFlowMode=0,
+               WFCondition=code, WFInput=test['WFInput'],
+               WFConditions={'Value': {'WFActionParameterFilterPrefix': 1, 'WFActionParameterFilterTemplates': [test]},
+                             'WFSerializationType': 'WFContentPredicateTableTemplate'})
+
+
 def act(identifier, **params):
     return {'WFWorkflowActionIdentifier': identifier, 'WFWorkflowActionParameters': params}
 
@@ -83,8 +94,7 @@ def build():
     link = output(first, 'Item from List')
 
     has_link = new_id()
-    actions.append(act('is.workflow.actions.conditional', GroupingIdentifier=has_link, WFControlFlowMode=0,
-                       WFCondition=100, WFInput={'Type': 'Variable', 'Variable': attachment(link)}))
+    actions.append(condition(has_link, link, 100))
 
     fetched = new_id()
     actions.append(act('is.workflow.actions.downloadurl', UUID=fetched, WFURL=ENDPOINT, WFHTTPMethod='POST',
@@ -98,8 +108,7 @@ def build():
                        WFDictionaryKey='message', WFInput=attachment(output(fetched, 'Contents of URL'))))
 
     saved = new_id()
-    actions.append(act('is.workflow.actions.conditional', GroupingIdentifier=saved, WFControlFlowMode=0,
-                       WFCondition=100, WFInput={'Type': 'Variable', 'Variable': attachment(output(message, 'Dictionary Value'))}))
+    actions.append(condition(saved, output(message, 'Dictionary Value'), 100))
     actions.append(act('is.workflow.actions.notification', WFNotificationActionTitle='ReadWell',
                        WFNotificationActionBody=text(output(message, 'Dictionary Value')), WFNotificationActionSound=False))
     actions.append(act('is.workflow.actions.conditional', GroupingIdentifier=saved, WFControlFlowMode=1))
